@@ -1,101 +1,135 @@
-class ListNode<T> {
-  public value: T;
-  public next: ListNode<T> | null;
+import { Iterable } from './types';
 
-  constructor(val: T) {
-    this.value = val;
-    this.next = null;
-  }
+export interface Node<T> {
+    value: T;
+    next?: Node<T>;
+    previous?: Node<T>;
 }
 
-export class LinkedList<T> {
-  private head: ListNode<T> | null = null;
+export class LinkedList<T> implements Iterable<T> {
+    private readonly EMPTY_NODE: Node<T> = { value: null, next: null };
+    private head: Node<T> = null;
+    private tail: Node<T> = null;
 
-  exists(value: T): boolean {
-    let temp = this.head;
-    while (temp) {
-      if (temp.value === value) {
-        return true;
-      }
-      temp = temp.next;
-    }
-    return false;
-  }
+    public getHead(): Node<T> {
+        return this.head;
+    };
 
-  empty(): boolean {
-    return this.head === null;
-  }
+    public getTail(): Node<T> {
+        return this.tail;
+    };
 
-  insert(value: T): void {
-    if (this.empty()) {
-      this.head = new ListNode(value);
-    } else {
-      this.insertEnd(value);
-    }
-  }
+    public insertAtBeginning(value: T): LinkedList<T> {
+        const node = this.forgeNode(value);
 
-  insertBetween(prevNode: ListNode<T>, val: T): void {
-    const newNode: ListNode<T> = new ListNode(val);
-    prevNode.next = newNode;
-    newNode.next = prevNode.next;
-  }
-
-  insertStart(value: T): void {
-    var newNode: ListNode<T> = new ListNode(value);
-    newNode.next = this.head;
-    this.head = newNode;
-  }
-
-  insertEnd(value: T): void {
-    const newNode = new ListNode(value);
-    let temp = this.head;
-    if (!temp) {
-      return;
-    }
-
-    while (temp.next) {
-      temp = temp.next;
-    }
-    temp.next = newNode;
-  }
-
-  deleteLast(prevNode: ListNode<T>): void {
-    prevNode.next = null;
-  }
-
-  deleteBetween(prevNode: ListNode<T>, node: ListNode<T>): void {
-    prevNode.next = node.next;
-  }
-
-  deleteFirst(): void {
-    const temp = this.head;
-    if (!temp) {
-      return;
-    }
-    this.head = temp.next;
-  }
-
-  remove(value: T): void {
-    let curr = this.head;
-    let prev = this.head;
-
-    if (!this.empty()) {
-      while (curr) {
-        if (curr.value === value) {
-          if (curr == this.head) {
-            this.deleteFirst();
-          } else if (curr.next == null && !!prev) {
-            this.deleteLast(prev);
-          } else if (!!prev) {
-            this.deleteBetween(prev, curr);
-          } else {
-            return;
-          }
+        node.next = this.head;
+        if (this.head) {
+            this.head.previous = node;
         }
 
-        prev = curr;
-        curr = curr.next;
-      }
-    }
-  }
+        this.head = node;
+
+        if (!this.tail) {
+            this.tail = node;
+        }
+
+        return this;
+    };
+
+    public insertAtEnd(value: T): LinkedList<T> {
+        const node = this.forgeNode(value);
+        const currentTail = this.getTail();
+        currentTail.next = node;
+        node.previous = currentTail;
+        this.tail = node;
+
+        return this;
+    };
+
+    public delete(value: T): boolean {
+        let deleted: boolean = false;
+        if (this.isEmpty()) {
+            return deleted;
+        }
+
+        deleted = this.deleteFromHead(value);
+
+        let current = this.head || this.EMPTY_NODE;
+        while (current.next) {
+            if (current.next.value === value) {
+                deleted = true;
+                if (current.next.next && current.next.next.previous) {
+                    current.next.next.previous = current;
+                }
+                current.next = current.next.next;
+            } else {
+                current = current.next;
+            }
+        }
+
+        if (this.tail.value === value) {
+            this.tail = current;
+        }
+        return deleted;
+    };
+
+    public fromArray(values: T[]): LinkedList<T> {
+        values.forEach((value: T): LinkedList<T> => {
+          const node = this.forgeNode(value);
+  
+          if (this.isEmpty()) {
+              this.head = node;
+              this.tail = node;
+              return this;
+          }
+          
+          // Append to the end of list
+          node.previous = this.tail;
+          this.tail.next = node;
+          this.tail = node;
+
+          return this;
+      });
+
+      return this;
+    };
+
+    public toArray = (): T[] => {
+        const result: T[] = [];
+        this.iterate((item: T) => result.push(item));
+        return result;
+    };
+
+    public size = (): number => {
+        let listSize = 0;
+        this.iterate((_: T): number => listSize++);
+        return listSize;
+    };
+
+    public isEmpty = () => !this.head;
+
+    public iterate = (accept: Function) => {
+        let node = this.head;
+        while (node) {
+            accept(node.value);
+            node = node.next;
+        }
+    };
+
+    private deleteFromHead = (value: T): boolean => {
+        let deleted: boolean = false;
+        while (this.head && this.head.value === value) {
+            deleted = true;
+            this.head = this.head.next;
+            if (this.head) {
+                this.head.previous = null;
+            }
+        }
+        return deleted;
+    };
+
+    private forgeNode = (value: T): Node<T> => {
+        return { value, next: null, previous: null };
+    };
+
 }
